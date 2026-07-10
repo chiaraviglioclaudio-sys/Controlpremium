@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import sqlite3
 import os
@@ -20,6 +21,8 @@ app = FastAPI(
     description="Servicio web para gestionar clientes, stock y presupuestos desde Render.",
     version="1.0.0"
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 os.makedirs(PDF_DIR, exist_ok=True)
 
@@ -164,27 +167,9 @@ def startup_event():
     init_db()
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 def read_root():
-    html = """
-    <html>
-        <head><title>Control Premium API</title></head>
-        <body>
-            <h1>Control Premium Web API</h1>
-            <p>Servicio desplegado en Render. Usa los siguientes endpoints:</p>
-            <ul>
-                <li><strong>GET /clientes</strong> - Listar clientes</li>
-                <li><strong>POST /clientes</strong> - Crear cliente</li>
-                <li><strong>GET /stock</strong> - Listar stock</li>
-                <li><strong>GET /presupuestos</strong> - Listar presupuestos</li>
-                <li><strong>GET /presupuestos/{id}</strong> - Detalle de presupuesto</li>
-                <li><strong>GET /presupuestos/{id}/pdf</strong> - Generar PDF de presupuesto</li>
-            </ul>
-            <p>Ver <strong>README.md</strong> en el repositorio para más detalles.</p>
-        </body>
-    </html>
-    """
-    return HTMLResponse(content=html)
+    return RedirectResponse(url="/static/index.html")
 
 
 @app.get("/health")
