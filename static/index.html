@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Control Premium Web</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f4f7; color: #333; }
+        header { background: #0078D7; color: white; padding: 20px; }
+        main { padding: 20px; max-width: 1000px; margin: 0 auto; }
+        h1 { margin-top: 0; }
+        .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+        .card { background: white; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,.08); padding: 18px; }
+        button { background: #0078D7; color: white; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; }
+        button:hover { background: #005bb5; }
+        .table-wrapper { overflow-x: auto; margin-top: 16px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e0e0e0; }
+        th { background: #f5f7fb; }
+        .field { margin-bottom: 12px; }
+        .field label { display: block; margin-bottom: 4px; font-weight: bold; }
+        .field input, .field textarea, .field select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+        .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .full-width { width: 100%; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Control Premium Web</h1>
+        <p>Interfaz básica para crear clientes y presupuestos desde Render.</p>
+    </header>
+    <main>
+        <section class="grid">
+            <div class="card">
+                <h2>Crear cliente</h2>
+                <div class="field"><label>Nombre</label><input id="cliente-nombre" type="text" /></div>
+                <div class="field"><label>Teléfono</label><input id="cliente-telefono" type="text" /></div>
+                <div class="field"><label>Dirección</label><input id="cliente-direccion" type="text" /></div>
+                <div class="field"><label>Email</label><input id="cliente-email" type="email" /></div>
+                <div class="field"><label>DNI/CUIT</label><input id="cliente-dni" type="text" /></div>
+                <button onclick="crearCliente()">Guardar cliente</button>
+                <p id="cliente-status"></p>
+            </div>
+            <div class="card">
+                <h2>Presupuestos</h2>
+                <div class="field"><label>Cliente</label><select id="cliente-select"></select></div>
+                <div class="field"><label>Obra</label><input id="obra-descripcion" type="text" /></div>
+                <div class="field"><label>Fecha inicio</label><input id="fecha-inicio" type="date" /></div>
+                <div class="field"><label>Condiciones</label><textarea id="condiciones" rows="3">Validez del presupuesto: 15 días.</textarea></div>
+                <div class="field"><label>Subtotal</label><input id="subtotal" type="number" step="0.01" /></div>
+                <div class="field"><label>IVA</label><input id="iva" type="number" step="0.01" /></div>
+                <div class="field"><label>Total</label><input id="monto" type="number" step="0.01" /></div>
+                <button onclick="crearPresupuesto()">Guardar presupuesto</button>
+                <p id="presupuesto-status"></p>
+            </div>
+        </section>
+        <section class="card" style="margin-top: 24px;">
+            <h2>Clientes existentes</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>ID</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>DNI/CUIT</th></tr></thead>
+                    <tbody id="clientes-table"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+    <script>
+        const apiBase = '/';
+
+        async function fetchClientes() {
+            const response = await fetch(apiBase + 'clientes');
+            const data = await response.json();
+            const tbody = document.getElementById('clientes-table');
+            const select = document.getElementById('cliente-select');
+            tbody.innerHTML = '';
+            select.innerHTML = '<option value="">Seleccionar cliente</option>';
+            data.forEach(cliente => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${cliente.id}</td><td>${cliente.nombre}</td><td>${cliente.telefono}</td><td>${cliente.email}</td><td>${cliente.dni_cuit}</td>`;
+                tbody.appendChild(row);
+                const option = document.createElement('option');
+                option.value = cliente.id;
+                option.textContent = cliente.nombre;
+                select.appendChild(option);
+            });
+        }
+
+        async function crearCliente() {
+            const cliente = {
+                nombre: document.getElementById('cliente-nombre').value,
+                telefono: document.getElementById('cliente-telefono').value,
+                direccion: document.getElementById('cliente-direccion').value,
+                email: document.getElementById('cliente-email').value,
+                dni_cuit: document.getElementById('cliente-dni').value
+            };
+            const response = await fetch(apiBase + 'clientes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cliente)
+            });
+            const status = document.getElementById('cliente-status');
+            if (response.ok) {
+                status.textContent = 'Cliente creado correctamente.';
+                status.style.color = 'green';
+                fetchClientes();
+            } else {
+                const error = await response.json();
+                status.textContent = error.detail || 'Error al crear cliente.';
+                status.style.color = 'red';
+            }
+        }
+
+        async function crearPresupuesto() {
+            const clienteId = parseInt(document.getElementById('cliente-select').value, 10);
+            const data = {
+                cliente_id: clienteId,
+                obra_descripcion: document.getElementById('obra-descripcion').value,
+                fecha_inicio: document.getElementById('fecha-inicio').value,
+                condiciones: document.getElementById('condiciones').value,
+                subtotal: parseFloat(document.getElementById('subtotal').value) || 0,
+                iva: parseFloat(document.getElementById('iva').value) || 0,
+                monto: parseFloat(document.getElementById('monto').value) || 0,
+                items: []
+            };
+            const response = await fetch(apiBase + 'presupuestos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const status = document.getElementById('presupuesto-status');
+            if (response.ok) {
+                status.textContent = 'Presupuesto creado correctamente.';
+                status.style.color = 'green';
+            } else {
+                const error = await response.json();
+                status.textContent = error.detail || 'Error al crear presupuesto.';
+                status.style.color = 'red';
+            }
+        }
+
+        fetchClientes();
+    </script>
+</body>
+</html>
