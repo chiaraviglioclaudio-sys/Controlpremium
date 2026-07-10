@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+.venv/
+venv/
+ENV/
+env/
+.Python
+build/
+dist/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# MyPy
+.mypy_cache/
