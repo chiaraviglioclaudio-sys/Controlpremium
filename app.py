@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import sqlite3
 import os
+import html
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -170,6 +171,35 @@ def startup_event():
 @app.get("/")
 def read_root():
     return RedirectResponse(url="/static/index.html")
+
+
+@app.get("/source", response_class=HTMLResponse)
+def view_source():
+    source_path = "ControlPremium.py"
+    if not os.path.exists(source_path):
+        raise HTTPException(status_code=404, detail="Source file not found")
+    with open(source_path, "r", encoding="utf-8", errors="ignore") as f:
+        content = f.read()
+    escaped = html.escape(content)
+    html_body = f"""
+    <html>
+        <head>
+            <title>ControlPremium.py</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 20px; background: #f4f4f7; color: #222; }}
+                pre {{ white-space: pre-wrap; word-wrap: break-word; font-family: monospace; background: #1e1e1e; color: #f8f8f2; padding: 16px; border-radius: 8px; overflow-x: auto; }}
+                a {{ color: #0078D7; text-decoration: none; }}
+                a:hover {{ text-decoration: underline; }}
+            </style>
+        </head>
+        <body>
+            <h1>ControlPremium.py</h1>
+            <p><a href="/">Volver a la app</a></p>
+            <pre>{escaped}</pre>
+        </body>
+    </html>
+    """
+    return HTMLResponse(content=html_body)
 
 
 @app.get("/health")
