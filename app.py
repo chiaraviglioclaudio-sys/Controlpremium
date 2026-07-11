@@ -150,6 +150,7 @@ class PresupuestoItem(BaseModel):
     unidad: str
     cantidad: float
     precio_unitario: float
+    subtotal: Optional[float] = None
 
 
 class PresupuestoCreate(BaseModel):
@@ -297,14 +298,21 @@ def create_presupuesto(data: PresupuestoCreate):
     presupuesto_id = cursor.lastrowid
 
     for item in data.items:
+        subtotal_item = item.subtotal if item.subtotal is not None else item.cantidad * item.precio_unitario
         cursor.execute(
             "INSERT INTO presupuesto_items(presupuesto_id, concepto, unidad, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?, ?)",
-            (presupuesto_id, item.concepto, item.unidad, item.cantidad, item.precio_unitario, item.subtotal)
+            (presupuesto_id, item.concepto, item.unidad, item.cantidad, item.precio_unitario, subtotal_item)
         )
 
     conn.commit()
     conn.close()
-    return {"id": presupuesto_id, "message": "Presupuesto creado"}
+    return {
+        "id": presupuesto_id,
+        "message": "Presupuesto creado",
+        "subtotal": data.subtotal,
+        "iva": data.iva,
+        "monto": data.monto,
+    }
 
 
 def draw_logo_on_canvas(c):

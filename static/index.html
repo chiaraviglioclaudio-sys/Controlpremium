@@ -332,12 +332,15 @@
                     subtotal: item.subtotal
                 }))
             };
+            console.log('Crear presupuesto payload:', data);
             const response = await fetch(apiBase + 'presupuestos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
             if (response.ok) {
+                const result = await response.json();
+                console.log('Presupuesto creado:', result);
                 status.textContent = 'Presupuesto creado correctamente.';
                 status.style.color = 'green';
                 document.getElementById('obra-descripcion').value = '';
@@ -347,8 +350,15 @@
                 renderItemsTable();
                 fetchPresupuestos();
             } else {
-                const error = await response.json();
-                status.textContent = error.detail || 'Error al crear presupuesto.';
+                let errorText = 'Error al crear presupuesto.';
+                try {
+                    const error = await response.json();
+                    errorText = error.detail || JSON.stringify(error);
+                } catch (err) {
+                    errorText = await response.text();
+                }
+                console.error('Presupuesto error:', response.status, errorText);
+                status.textContent = errorText;
                 status.style.color = 'red';
             }
         }
