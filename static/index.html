@@ -5,68 +5,141 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Control Premium Web</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f4f7; color: #333; }
-        header { background: #0078D7; color: white; padding: 20px; }
-        main { padding: 20px; max-width: 1000px; margin: 0 auto; }
-        h1 { margin-top: 0; }
-        .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-        .card { background: white; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,.08); padding: 18px; }
-        button { background: #0078D7; color: white; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; }
-        button:hover { background: #005bb5; }
-        .table-wrapper { overflow-x: auto; margin-top: 16px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e0e0e0; }
-        th { background: #f5f7fb; }
-        .field { margin-bottom: 12px; }
-        .field label { display: block; margin-bottom: 4px; font-weight: bold; }
-        .field input, .field textarea, .field select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
-        .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .full-width { width: 100%; }
+        :root {
+            --primary: #0078d7;
+            --primary-dark: #005bb5;
+            --bg: #f4f4f7;
+            --card: #ffffff;
+            --text: #1f2937;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: Inter, system-ui, sans-serif; margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+        header { background: var(--primary); color: white; padding: 24px 20px; }
+        header h1 { margin: 0 0 8px; }
+        header p { margin: 0; opacity: .9; }
+        header .top-actions { margin-top: 16px; }
+        header a.button { display: inline-block; background: var(--primary-dark); color: white; padding: 10px 16px; border-radius: 10px; text-decoration: none; }
+        main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+        .tab { background: var(--card); padding: 18px; border: 1px solid var(--border); border-radius: 14px; cursor: pointer; text-align: center; transition: border-color .2s, box-shadow .2s; }
+        .tab.active { border-color: var(--primary); box-shadow: 0 8px 20px rgba(0, 120, 215, .12); }
+        .tab h2 { margin: 0; font-size: 18px; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .card { background: var(--card); border-radius: 16px; padding: 20px; box-shadow: 0 12px 28px rgba(15, 23, 42, .05); border: 1px solid var(--border); margin-bottom: 20px; }
+        .field { display: grid; gap: 8px; margin-bottom: 14px; }
+        .field label { font-weight: 700; }
+        .field input, .field textarea, .field select { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; font-size: 14px; }
+        .field textarea { min-height: 110px; resize: vertical; }
+        .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        button { background: var(--primary); color: white; border: none; border-radius: 10px; padding: 12px 18px; cursor: pointer; font-weight: 700; }
+        button:hover { background: var(--primary-dark); }
+        .status { margin-top: 10px; min-height: 20px; }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td { padding: 14px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+        th { background: #f8fafc; font-weight: 700; }
+        .list-grid { display: grid; gap: 20px; }
+        .item-card { padding: 18px; }
+        .item-card h3 { margin-top: 0; }
+        .item-card p { margin: 8px 0; }
+        .item-card .actions { margin-top: 12px; }
+        .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+        .section-title h2 { margin: 0; }
     </style>
 </head>
 <body>
     <header>
         <h1>Control Premium Web</h1>
-        <p>Interfaz básica para crear clientes y presupuestos desde Render.</p>
-        <p><a href="/source" style="color: white; background: #005bb5; padding: 8px 14px; border-radius: 8px; text-decoration: none;">Ver ControlPremium.py</a></p>
+        <p>Vista web para clientes, stock y presupuestos.</p>
+        <div class="top-actions">
+            <a href="/source" class="button">Ver ControlPremium.py</a>
+        </div>
     </header>
     <main>
-        <section class="grid">
+        <div class="tabs">
+            <div class="tab active" data-target="clientes-section"><h2>Clientes</h2></div>
+            <div class="tab" data-target="stock-section"><h2>Stock</h2></div>
+            <div class="tab" data-target="presupuestos-section"><h2>Presupuestos</h2></div>
+        </div>
+
+        <section id="clientes-section" class="section active">
             <div class="card">
-                <h2>Crear cliente</h2>
+                <div class="section-title">
+                    <h2>Agregar cliente</h2>
+                </div>
                 <div class="field"><label>Nombre</label><input id="cliente-nombre" type="text" /></div>
                 <div class="field"><label>Teléfono</label><input id="cliente-telefono" type="text" /></div>
                 <div class="field"><label>Dirección</label><input id="cliente-direccion" type="text" /></div>
                 <div class="field"><label>Email</label><input id="cliente-email" type="email" /></div>
                 <div class="field"><label>DNI/CUIT</label><input id="cliente-dni" type="text" /></div>
-                <button onclick="crearCliente()">Guardar cliente</button>
-                <p id="cliente-status"></p>
+                <div class="actions">
+                    <button onclick="crearCliente()">Guardar cliente</button>
+                    <span id="cliente-status" class="status"></span>
+                </div>
             </div>
             <div class="card">
-                <h2>Presupuestos</h2>
+                <div class="section-title"><h2>Clientes existentes</h2></div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead><tr><th>ID</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>DNI/CUIT</th></tr></thead>
+                        <tbody id="clientes-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="stock-section" class="section">
+            <div class="card">
+                <div class="section-title"><h2>Stock actual</h2></div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead><tr><th>Producto</th><th>Cantidad</th><th>Proveedor</th></tr></thead>
+                        <tbody id="stock-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="presupuestos-section" class="section">
+            <div class="card">
+                <div class="section-title">
+                    <h2>Nuevo presupuesto</h2>
+                </div>
                 <div class="field"><label>Cliente</label><select id="cliente-select"></select></div>
                 <div class="field"><label>Obra</label><input id="obra-descripcion" type="text" /></div>
                 <div class="field"><label>Fecha inicio</label><input id="fecha-inicio" type="date" /></div>
-                <div class="field"><label>Condiciones</label><textarea id="condiciones" rows="3">Validez del presupuesto: 15 días.</textarea></div>
+                <div class="field"><label>Condiciones</label><textarea id="condiciones">Validez del presupuesto: 15 días.</textarea></div>
                 <div class="field"><label>Subtotal</label><input id="subtotal" type="number" step="0.01" /></div>
                 <div class="field"><label>IVA</label><input id="iva" type="number" step="0.01" /></div>
                 <div class="field"><label>Total</label><input id="monto" type="number" step="0.01" /></div>
-                <button onclick="crearPresupuesto()">Guardar presupuesto</button>
-                <p id="presupuesto-status"></p>
+                <div class="actions">
+                    <button onclick="crearPresupuesto()">Guardar presupuesto</button>
+                    <span id="presupuesto-status" class="status"></span>
+                </div>
             </div>
-        </section>
-        <section class="card" style="margin-top: 24px;">
-            <h2>Clientes existentes</h2>
-            <div class="table-wrapper">
-                <table>
-                    <thead><tr><th>ID</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>DNI/CUIT</th></tr></thead>
-                    <tbody id="clientes-table"></tbody>
-                </table>
+            <div class="card">
+                <div class="section-title"><h2>Presupuestos recientes</h2></div>
+                <div id="presupuestos-list" class="list-grid"></div>
+            </div>
+            <div id="presupuesto-detail-wrapper" class="card">
+                <div class="section-title"><h2>Detalle del presupuesto</h2></div>
+                <div id="presupuesto-detail"><p>Seleccione un presupuesto para ver detalles.</p></div>
             </div>
         </section>
     </main>
     <script>
         const apiBase = '/';
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.target).classList.add('active');
+            });
+        });
 
         async function fetchClientes() {
             const response = await fetch(apiBase + 'clientes');
@@ -83,6 +156,40 @@
                 option.value = cliente.id;
                 option.textContent = cliente.nombre;
                 select.appendChild(option);
+            });
+        }
+
+        async function fetchStock() {
+            const response = await fetch(apiBase + 'stock');
+            const data = await response.json();
+            const tbody = document.getElementById('stock-table-body');
+            tbody.innerHTML = '';
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${item.producto}</td><td>${item.cantidad}</td><td>${item.proveedor || ''}</td>`;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function fetchPresupuestos() {
+            const response = await fetch(apiBase + 'presupuestos');
+            const data = await response.json();
+            const list = document.getElementById('presupuestos-list');
+            list.innerHTML = '';
+            data.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                card.innerHTML = `
+                    <h3>Presupuesto N° ${p.id}</h3>
+                    <p><strong>Cliente:</strong> ${p.cliente}</p>
+                    <p><strong>Total:</strong> $${p.monto.toFixed(2)}</p>
+                    <p><strong>Estado:</strong> ${p.estado}</p>
+                    <div class="actions">
+                        <button onclick="verPresupuesto(${p.id})">Ver detalles</button>
+                        <button onclick="window.open('/presupuestos/${p.id}/pdf', '_blank')">Descargar PDF</button>
+                    </div>
+                `;
+                list.appendChild(card);
             });
         }
 
@@ -103,6 +210,11 @@
             if (response.ok) {
                 status.textContent = 'Cliente creado correctamente.';
                 status.style.color = 'green';
+                document.getElementById('cliente-nombre').value = '';
+                document.getElementById('cliente-telefono').value = '';
+                document.getElementById('cliente-direccion').value = '';
+                document.getElementById('cliente-email').value = '';
+                document.getElementById('cliente-dni').value = '';
                 fetchClientes();
             } else {
                 const error = await response.json();
@@ -113,6 +225,12 @@
 
         async function crearPresupuesto() {
             const clienteId = parseInt(document.getElementById('cliente-select').value, 10);
+            const status = document.getElementById('presupuesto-status');
+            if (!clienteId) {
+                status.textContent = 'Seleccione un cliente.';
+                status.style.color = 'red';
+                return;
+            }
             const data = {
                 cliente_id: clienteId,
                 obra_descripcion: document.getElementById('obra-descripcion').value,
@@ -128,10 +246,16 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            const status = document.getElementById('presupuesto-status');
             if (response.ok) {
                 status.textContent = 'Presupuesto creado correctamente.';
                 status.style.color = 'green';
+                document.getElementById('obra-descripcion').value = '';
+                document.getElementById('fecha-inicio').value = new Date().toISOString().slice(0, 10);
+                document.getElementById('condiciones').value = 'Validez del presupuesto: 15 días.';
+                document.getElementById('subtotal').value = '';
+                document.getElementById('iva').value = '';
+                document.getElementById('monto').value = '';
+                fetchPresupuestos();
             } else {
                 const error = await response.json();
                 status.textContent = error.detail || 'Error al crear presupuesto.';
@@ -139,7 +263,38 @@
             }
         }
 
-        fetchClientes();
+        async function verPresupuesto(id) {
+            const response = await fetch(apiBase + 'presupuestos/' + id);
+            const data = await response.json();
+            const detail = document.getElementById('presupuesto-detail');
+            detail.innerHTML = `
+                <h3>Presupuesto N° ${data.id}</h3>
+                <p><strong>Cliente:</strong> ${data.cliente}</p>
+                <p><strong>Obra:</strong> ${data.obra_descripcion}</p>
+                <p><strong>Fecha inicio:</strong> ${data.fecha_inicio}</p>
+                <p><strong>Condiciones:</strong> ${data.condiciones}</p>
+                <p><strong>Subtotal:</strong> $${data.subtotal.toFixed(2)}</p>
+                <p><strong>IVA:</strong> $${data.iva.toFixed(2)}</p>
+                <p><strong>Total:</strong> $${data.monto.toFixed(2)}</p>
+                <h4>Items</h4>
+                <div class="table-wrapper">
+                    <table>
+                        <thead><tr><th>Concepto</th><th>Unidad</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr></thead>
+                        <tbody>${data.items.map(item => `<tr><td>${item.concepto}</td><td>${item.unidad}</td><td>${item.cantidad}</td><td>$${parseFloat(item.precio_unitario).toFixed(2)}</td><td>$${parseFloat(item.subtotal).toFixed(2)}</td></tr>`).join('')}</tbody>
+                    </table>
+                </div>
+                <div class="actions">
+                    <button onclick="window.open('/presupuestos/${data.id}/pdf', '_blank')">Descargar PDF</button>
+                </div>
+            `;
+        }
+
+        window.addEventListener('load', () => {
+            fetchClientes();
+            fetchStock();
+            fetchPresupuestos();
+            document.getElementById('fecha-inicio').value = new Date().toISOString().slice(0, 10);
+        });
     </script>
 </body>
 </html>
