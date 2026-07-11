@@ -35,18 +35,23 @@
         .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
         button { background: var(--primary); color: white; border: none; border-radius: 10px; padding: 12px 18px; cursor: pointer; font-weight: 700; }
         button:hover { background: var(--primary-dark); }
+        .button-secondary { background: #64748b; }
+        .button-secondary:hover { background: #475569; }
         .status { margin-top: 10px; min-height: 20px; }
         .table-wrapper { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 12px; }
         th, td { padding: 14px 12px; border-bottom: 1px solid var(--border); text-align: left; }
         th { background: #f8fafc; font-weight: 700; }
         .list-grid { display: grid; gap: 20px; }
-        .item-card { padding: 18px; }
+        .item-card { padding: 18px; border-radius: 14px; border: 1px solid var(--border); background: #fefefe; }
         .item-card h3 { margin-top: 0; }
         .item-card p { margin: 8px 0; }
         .item-card .actions { margin-top: 12px; }
         .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
         .section-title h2 { margin: 0; }
+        .totals-grid { display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: 12px; margin-top: 14px; }
+        .total-box { background: #f8fafc; padding: 14px; border-radius: 12px; text-align: center; }
+        .label-secondary { font-size: 13px; color: #64748b; margin-bottom: 4px; display: block; }
     </style>
 </head>
 <body>
@@ -108,13 +113,32 @@
                     <h2>Nuevo presupuesto</h2>
                 </div>
                 <div class="field"><label>Cliente</label><select id="cliente-select"></select></div>
-                <div class="field"><label>Obra</label><input id="obra-descripcion" type="text" /></div>
+                <div class="field"><label>Obra / Descripción</label><input id="obra-descripcion" type="text" /></div>
                 <div class="field"><label>Fecha inicio</label><input id="fecha-inicio" type="date" /></div>
                 <div class="field"><label>Condiciones</label><textarea id="condiciones">Validez del presupuesto: 15 días.</textarea></div>
-                <div class="field"><label>Subtotal</label><input id="subtotal" type="number" step="0.01" /></div>
-                <div class="field"><label>IVA</label><input id="iva" type="number" step="0.01" /></div>
-                <div class="field"><label>Total</label><input id="monto" type="number" step="0.01" /></div>
-                <div class="actions">
+                <div class="card" style="margin-top: 12px;">
+                    <div class="section-title"><h2>Items</h2></div>
+                    <div class="field"><label>Concepto</label><input id="item-concepto" type="text" /></div>
+                    <div class="field"><label>Unidad</label><input id="item-unidad" type="text" /></div>
+                    <div class="field"><label>Cantidad</label><input id="item-cantidad" type="number" step="0.01" /></div>
+                    <div class="field"><label>Precio unitario</label><input id="item-precio" type="number" step="0.01" /></div>
+                    <div class="actions">
+                        <button class="button-secondary" onclick="agregarItem()">Agregar item</button>
+                        <span id="item-status" class="status"></span>
+                    </div>
+                    <div class="table-wrapper" style="margin-top: 16px;">
+                        <table>
+                            <thead><tr><th>Concepto</th><th>Unidad</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th><th>Acción</th></tr></thead>
+                            <tbody id="items-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="totals-grid">
+                    <div class="total-box"><span class="label-secondary">Subtotal</span><strong id="subtotal-label">$0.00</strong></div>
+                    <div class="total-box"><span class="label-secondary">IVA 21%</span><strong id="iva-label">$0.00</strong></div>
+                    <div class="total-box"><span class="label-secondary">Total</span><strong id="total-label">$0.00</strong></div>
+                </div>
+                <div class="actions" style="margin-top: 18px;">
                     <button onclick="crearPresupuesto()">Guardar presupuesto</button>
                     <span id="presupuesto-status" class="status"></span>
                 </div>
@@ -131,6 +155,7 @@
     </main>
     <script>
         const apiBase = '/';
+        let items = [];
 
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
@@ -140,6 +165,60 @@
                 document.getElementById(tab.dataset.target).classList.add('active');
             });
         });
+
+        function calcularTotales() {
+            const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+            const iva = subtotal * 0.21;
+            const total = subtotal + iva;
+            document.getElementById('subtotal-label').textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById('iva-label').textContent = `$${iva.toFixed(2)}`;
+            document.getElementById('total-label').textContent = `$${total.toFixed(2)}`;
+            return { subtotal, iva, total };
+        }
+
+        function renderItemsTable() {
+            const tbody = document.getElementById('items-table-body');
+            tbody.innerHTML = '';
+            items.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.concepto}</td>
+                    <td>${item.unidad}</td>
+                    <td>${item.cantidad}</td>
+                    <td>$${item.precio_unitario.toFixed(2)}</td>
+                    <td>$${item.subtotal.toFixed(2)}</td>
+                    <td><button class="button-secondary" onclick="eliminarItem(${index})">Eliminar</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+            calcularTotales();
+        }
+
+        function agregarItem() {
+            const concepto = document.getElementById('item-concepto').value.trim();
+            const unidad = document.getElementById('item-unidad').value.trim();
+            const cantidad = parseFloat(document.getElementById('item-cantidad').value);
+            const precio = parseFloat(document.getElementById('item-precio').value);
+            const status = document.getElementById('item-status');
+            if (!concepto || !unidad || isNaN(cantidad) || isNaN(precio) || cantidad <= 0 || precio < 0) {
+                status.textContent = 'Complete todos los campos de item correctamente.';
+                status.style.color = 'red';
+                return;
+            }
+            items.push({ concepto, unidad, cantidad, precio_unitario: precio, subtotal: cantidad * precio });
+            document.getElementById('item-concepto').value = '';
+            document.getElementById('item-unidad').value = '';
+            document.getElementById('item-cantidad').value = '';
+            document.getElementById('item-precio').value = '';
+            status.textContent = 'Item agregado.';
+            status.style.color = 'green';
+            renderItemsTable();
+        }
+
+        function eliminarItem(index) {
+            items.splice(index, 1);
+            renderItemsTable();
+        }
 
         async function fetchClientes() {
             const response = await fetch(apiBase + 'clientes');
@@ -231,15 +310,27 @@
                 status.style.color = 'red';
                 return;
             }
+            if (items.length === 0) {
+                status.textContent = 'Agregue al menos un item al presupuesto.';
+                status.style.color = 'red';
+                return;
+            }
+            const totals = calcularTotales();
             const data = {
                 cliente_id: clienteId,
                 obra_descripcion: document.getElementById('obra-descripcion').value,
                 fecha_inicio: document.getElementById('fecha-inicio').value,
                 condiciones: document.getElementById('condiciones').value,
-                subtotal: parseFloat(document.getElementById('subtotal').value) || 0,
-                iva: parseFloat(document.getElementById('iva').value) || 0,
-                monto: parseFloat(document.getElementById('monto').value) || 0,
-                items: []
+                subtotal: totals.subtotal,
+                iva: totals.iva,
+                monto: totals.total,
+                items: items.map(item => ({
+                    concepto: item.concepto,
+                    unidad: item.unidad,
+                    cantidad: item.cantidad,
+                    precio_unitario: item.precio_unitario,
+                    subtotal: item.subtotal
+                }))
             };
             const response = await fetch(apiBase + 'presupuestos', {
                 method: 'POST',
@@ -252,9 +343,8 @@
                 document.getElementById('obra-descripcion').value = '';
                 document.getElementById('fecha-inicio').value = new Date().toISOString().slice(0, 10);
                 document.getElementById('condiciones').value = 'Validez del presupuesto: 15 días.';
-                document.getElementById('subtotal').value = '';
-                document.getElementById('iva').value = '';
-                document.getElementById('monto').value = '';
+                items = [];
+                renderItemsTable();
                 fetchPresupuestos();
             } else {
                 const error = await response.json();
