@@ -1,10 +1,14 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import sqlite3
 import os
 import html
+import shutil
+import imghdr
+from pathlib import Path
+from uuid import uuid4
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -16,6 +20,7 @@ from typing import List, Optional
 DB_PATH = "controlpremium.db"
 PDF_DIR = "presupuestos"
 LOGO_PATH = "logo_empresa.png"
+LOGO_UPLOAD_DIR = os.path.join("static", "uploads")
 
 app = FastAPI(
     title="Control Premium Web API",
@@ -26,6 +31,7 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 os.makedirs(PDF_DIR, exist_ok=True)
+os.makedirs(LOGO_UPLOAD_DIR, exist_ok=True)
 
 
 def get_connection():
@@ -340,6 +346,36 @@ def save_configuracion(item: ConfigItem):
     return item.dict()
 
 
+@app.post("/configuracion/logo")
+def upload_logo(file: UploadFile = File(...)):
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="El archivo debe ser una imagen.")
+    suffix = Path(file.filename).suffix or ".png"
+    filename = f"logo_{uuid4().hex}{suffix}"
+    destination_path = os.path.join(LOGO_UPLOAD_DIR, filename)
+    max_size = 5 * 1024 * 1024
+    size = 0
+    try:
+        with open(destination_path, "wb") as buffer:
+            while True:
+                chunk = file.file.read(8192)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > max_size:
+                    raise HTTPException(status_code=400, detail="El archivo es demasiado grande.")
+                buffer.write(chunk)
+        detected_type = imghdr.what(destination_path)
+        if detected_type is None:
+            os.remove(destination_path)
+            raise HTTPException(status_code=400, detail="El archivo subido no es una imagen válida.")
+    finally:
+        file.file.close()
+    logo_config_path = os.path.join("static", "uploads", filename).replace("\\", "/")
+    set_config_value("EMPRESA_LOGO", logo_config_path)
+    return {"path": logo_config_path}
+
+
 @app.get("/stock")
 def list_stock():
     conn = get_connection()
@@ -421,6 +457,10 @@ def create_presupuesto(data: PresupuestoCreate):
 
 def draw_logo_on_canvas(c):
     logo_path = get_config_value("EMPRESA_LOGO") or LOGO_PATH
+    if logo_path.startswith("/static/"):
+        logo_path = logo_path[1:]
+    if logo_path.startswith("static/") and not os.path.exists(logo_path):
+        logo_path = os.path.join(os.getcwd(), logo_path)
     if os.path.exists(logo_path):
         try:
             logo = ImageReader(logo_path)

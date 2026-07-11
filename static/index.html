@@ -162,7 +162,9 @@
                 <div class="field"><label>Dirección</label><input id="config-empresa-direccion" type="text" /></div>
                 <div class="field"><label>Teléfono</label><input id="config-empresa-telefono" type="text" /></div>
                 <div class="field"><label>Contacto</label><input id="config-empresa-contacto" type="text" /></div>
-                <div class="field"><label>Logo (URL o nombre de archivo)</label><input id="config-empresa-logo" type="text" /></div>
+                <div class="field"><label>Logo actual</label><img id="config-logo-preview" src="" alt="Logo" style="max-width: 180px; max-height: 120px; display: block; margin-top: 8px;" /></div>
+                <div class="field"><label>Subir logo</label><input id="config-empresa-logo-file" type="file" accept="image/*" /></div>
+                <div class="field"><label>Logo (ruta o URL)</label><input id="config-empresa-logo" type="text" /></div>
             </div>
             <div class="card">
                 <div class="section-title"><h2>Configuración SMTP</h2></div>
@@ -305,21 +307,62 @@
             document.getElementById('config-empresa-telefono').value = data.EMPRESA_TELEFONO || '';
             document.getElementById('config-empresa-contacto').value = data.EMPRESA_CONTACTO || '';
             document.getElementById('config-empresa-logo').value = data.EMPRESA_LOGO || '';
+            const preview = document.getElementById('config-logo-preview');
+            if (data.EMPRESA_LOGO) {
+                preview.src = data.EMPRESA_LOGO.startsWith('/') ? data.EMPRESA_LOGO : '/' + data.EMPRESA_LOGO;
+                preview.style.display = 'block';
+            } else {
+                preview.src = '';
+                preview.style.display = 'none';
+            }
             document.getElementById('config-smtp-server').value = data.SMTP_SERVER || '';
             document.getElementById('config-smtp-port').value = data.SMTP_PORT || '';
             document.getElementById('config-smtp-user').value = data.SMTP_USER || '';
             document.getElementById('config-smtp-pass').value = data.SMTP_PASS || '';
         }
 
+        async function uploadLogoFile() {
+            const input = document.getElementById('config-empresa-logo-file');
+            if (!input.files || input.files.length === 0) {
+                return null;
+            }
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+            const response = await fetch(apiBase + 'configuracion/logo', {
+                method: 'POST',
+                body: formData
+            });
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ detail: 'Error al subir el logo.' }));
+                throw new Error(error.detail || 'Error al subir el logo.');
+            }
+            return (await response.json()).path;
+        }
+
         async function guardarConfiguracion() {
             const status = document.getElementById('config-status');
+            status.textContent = '';
+            let logoValor = document.getElementById('config-empresa-logo').value.trim();
+            try {
+                const fileInput = document.getElementById('config-empresa-logo-file');
+                if (fileInput.files && fileInput.files.length > 0) {
+                    logoValor = await uploadLogoFile();
+                    document.getElementById('config-empresa-logo').value = logoValor;
+                    document.getElementById('config-logo-preview').src = logoValor.startsWith('/') ? logoValor : '/' + logoValor;
+                    document.getElementById('config-logo-preview').style.display = 'block';
+                }
+            } catch (error) {
+                status.textContent = error.message;
+                status.style.color = 'red';
+                return;
+            }
             const configuracion = [
                 { clave: 'EMPRESA_NOMBRE', valor: document.getElementById('config-empresa-nombre').value },
                 { clave: 'EMPRESA_CUIT', valor: document.getElementById('config-empresa-cuit').value },
                 { clave: 'EMPRESA_DIRECCION', valor: document.getElementById('config-empresa-direccion').value },
                 { clave: 'EMPRESA_TELEFONO', valor: document.getElementById('config-empresa-telefono').value },
                 { clave: 'EMPRESA_CONTACTO', valor: document.getElementById('config-empresa-contacto').value },
-                { clave: 'EMPRESA_LOGO', valor: document.getElementById('config-empresa-logo').value },
+                { clave: 'EMPRESA_LOGO', valor: logoValor },
                 { clave: 'SMTP_SERVER', valor: document.getElementById('config-smtp-server').value },
                 { clave: 'SMTP_PORT', valor: document.getElementById('config-smtp-port').value },
                 { clave: 'SMTP_USER', valor: document.getElementById('config-smtp-user').value },
@@ -334,6 +377,9 @@
             }
             status.textContent = 'Configuración guardada correctamente.';
             status.style.color = 'green';
+            if (document.getElementById('config-empresa-logo-file').files.length > 0) {
+                document.getElementById('config-empresa-logo-file').value = '';
+            }
         }
 
         async function crearCliente() {
