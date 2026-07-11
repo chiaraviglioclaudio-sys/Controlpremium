@@ -34,6 +34,23 @@ def get_connection():
     return conn
 
 
+def get_config_value(clave: str) -> str:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT valor FROM configuracion WHERE clave = ?", (clave,))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else ""
+
+
+def set_config_value(clave: str, valor: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR REPLACE INTO configuracion(clave, valor) VALUES (?, ?)", (clave, valor))
+    conn.commit()
+    conn.close()
+
+
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
@@ -130,6 +147,10 @@ def init_db():
         "EMPRESA_TELEFONO": "11-1234-5678",
         "EMPRESA_CONTACTO": "info@stoplac.com",
         "EMPRESA_LOGO": LOGO_PATH,
+        "SMTP_SERVER": "",
+        "SMTP_PORT": "",
+        "SMTP_USER": "",
+        "SMTP_PASS": "",
     }
     for clave, valor in default_config.items():
         cursor.execute("INSERT OR IGNORE INTO configuracion(clave, valor) VALUES (?, ?)", (clave, valor))
@@ -162,6 +183,24 @@ class PresupuestoCreate(BaseModel):
     iva: float
     monto: float
     items: List[PresupuestoItem]
+
+
+class ConfigItem(BaseModel):
+    clave: str
+    valor: str
+
+
+class Proveedor(BaseModel):
+    nombre: str
+    telefono: Optional[str] = ""
+    contacto: Optional[str] = ""
+
+
+class Movimiento(BaseModel):
+    tipo: str
+    descripcion: str
+    monto: float
+    fecha: Optional[str] = None
 
 
 @app.on_event("startup")
@@ -234,6 +273,71 @@ def create_cliente(cliente: Cliente):
         raise HTTPException(status_code=400, detail="El cliente ya existe")
     conn.close()
     return {"id": cliente_id, **cliente.dict()}
+
+
+@app.get("/proveedores")
+def list_proveedores():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, nombre, telefono, contacto FROM proveedores ORDER BY nombre")
+    rows = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+@app.post("/proveedores")
+def create_proveedor(proveedor: Proveedor):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO proveedores(nombre, telefono, contacto) VALUES (?, ?, ?)",
+        (proveedor.nombre, proveedor.telefono, proveedor.contacto)
+    )
+    conn.commit()
+    proveedor_id = cursor.lastrowid
+    conn.close()
+    return {"id": proveedor_id, **proveedor.dict()}
+
+
+@app.get("/movimientos")
+def list_movimientos():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, tipo, descripcion, monto, fecha FROM movimientos ORDER BY fecha DESC")
+    rows = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+@app.post("/movimientos")
+def create_movimiento(movimiento: Movimiento):
+    conn = get_connection()
+    cursor = conn.cursor()
+    fecha = movimiento.fecha or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    cursor.execute(
+        "INSERT INTO movimientos(tipo, descripcion, monto, fecha) VALUES (?, ?, ?, ?)",
+        (movimiento.tipo, movimiento.descripcion, movimiento.monto, fecha)
+    )
+    conn.commit()
+    movimiento_id = cursor.lastrowid
+    conn.close()
+    return {"id": movimiento_id, "tipo": movimiento.tipo, "descripcion": movimiento.descripcion, "monto": movimiento.monto, "fecha": fecha}
+
+
+@app.get("/configuracion")
+def list_configuracion():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT clave, valor FROM configuracion")
+    rows = cursor.fetchall()
+    conn.close()
+    return {row['clave']: row['valor'] for row in rows}
+
+
+@app.post("/configuracion")
+def save_configuracion(item: ConfigItem):
+    set_config_value(item.clave, item.valor)
+    return item.dict()
 
 
 @app.get("/stock")
@@ -316,9 +420,10 @@ def create_presupuesto(data: PresupuestoCreate):
 
 
 def draw_logo_on_canvas(c):
-    if os.path.exists(LOGO_PATH):
+    logo_path = get_config_value("EMPRESA_LOGO") or LOGO_PATH
+    if os.path.exists(logo_path):
         try:
-            logo = ImageReader(LOGO_PATH)
+            logo = ImageReader(logo_path)
             c.drawImage(logo, 40, 760, width=120, preserveAspectRatio=True, mask='auto')
         except Exception:
             pass

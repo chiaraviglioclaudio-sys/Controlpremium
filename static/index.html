@@ -21,7 +21,7 @@
         header .top-actions { margin-top: 16px; }
         header a.button { display: inline-block; background: var(--primary-dark); color: white; padding: 10px 16px; border-radius: 10px; text-decoration: none; }
         main { padding: 20px; max-width: 1200px; margin: 0 auto; }
-        .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+        .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
         .tab { background: var(--card); padding: 18px; border: 1px solid var(--border); border-radius: 14px; cursor: pointer; text-align: center; transition: border-color .2s, box-shadow .2s; }
         .tab.active { border-color: var(--primary); box-shadow: 0 8px 20px rgba(0, 120, 215, .12); }
         .tab h2 { margin: 0; font-size: 18px; }
@@ -67,6 +67,7 @@
             <div class="tab active" data-target="clientes-section"><h2>Clientes</h2></div>
             <div class="tab" data-target="stock-section"><h2>Stock</h2></div>
             <div class="tab" data-target="presupuestos-section"><h2>Presupuestos</h2></div>
+            <div class="tab" data-target="configuracion-section"><h2>Configuración</h2></div>
         </div>
 
         <section id="clientes-section" class="section active">
@@ -150,6 +151,29 @@
             <div id="presupuesto-detail-wrapper" class="card">
                 <div class="section-title"><h2>Detalle del presupuesto</h2></div>
                 <div id="presupuesto-detail"><p>Seleccione un presupuesto para ver detalles.</p></div>
+            </div>
+        </section>
+
+        <section id="configuracion-section" class="section">
+            <div class="card">
+                <div class="section-title"><h2>Configuración de la empresa</h2></div>
+                <div class="field"><label>Nombre de la empresa</label><input id="config-empresa-nombre" type="text" /></div>
+                <div class="field"><label>CUIT</label><input id="config-empresa-cuit" type="text" /></div>
+                <div class="field"><label>Dirección</label><input id="config-empresa-direccion" type="text" /></div>
+                <div class="field"><label>Teléfono</label><input id="config-empresa-telefono" type="text" /></div>
+                <div class="field"><label>Contacto</label><input id="config-empresa-contacto" type="text" /></div>
+                <div class="field"><label>Logo (URL o nombre de archivo)</label><input id="config-empresa-logo" type="text" /></div>
+            </div>
+            <div class="card">
+                <div class="section-title"><h2>Configuración SMTP</h2></div>
+                <div class="field"><label>Servidor SMTP</label><input id="config-smtp-server" type="text" /></div>
+                <div class="field"><label>Puerto SMTP</label><input id="config-smtp-port" type="text" /></div>
+                <div class="field"><label>Usuario SMTP</label><input id="config-smtp-user" type="text" /></div>
+                <div class="field"><label>Contraseña SMTP</label><input id="config-smtp-pass" type="password" /></div>
+                <div class="actions">
+                    <button onclick="guardarConfiguracion()">Guardar configuración</button>
+                    <span id="config-status" class="status"></span>
+                </div>
             </div>
         </section>
     </main>
@@ -270,6 +294,46 @@
                 `;
                 list.appendChild(card);
             });
+        }
+
+        async function fetchConfiguracion() {
+            const response = await fetch(apiBase + 'configuracion');
+            const data = await response.json();
+            document.getElementById('config-empresa-nombre').value = data.EMPRESA_NOMBRE || '';
+            document.getElementById('config-empresa-cuit').value = data.EMPRESA_CUIT || '';
+            document.getElementById('config-empresa-direccion').value = data.EMPRESA_DIRECCION || '';
+            document.getElementById('config-empresa-telefono').value = data.EMPRESA_TELEFONO || '';
+            document.getElementById('config-empresa-contacto').value = data.EMPRESA_CONTACTO || '';
+            document.getElementById('config-empresa-logo').value = data.EMPRESA_LOGO || '';
+            document.getElementById('config-smtp-server').value = data.SMTP_SERVER || '';
+            document.getElementById('config-smtp-port').value = data.SMTP_PORT || '';
+            document.getElementById('config-smtp-user').value = data.SMTP_USER || '';
+            document.getElementById('config-smtp-pass').value = data.SMTP_PASS || '';
+        }
+
+        async function guardarConfiguracion() {
+            const status = document.getElementById('config-status');
+            const configuracion = [
+                { clave: 'EMPRESA_NOMBRE', valor: document.getElementById('config-empresa-nombre').value },
+                { clave: 'EMPRESA_CUIT', valor: document.getElementById('config-empresa-cuit').value },
+                { clave: 'EMPRESA_DIRECCION', valor: document.getElementById('config-empresa-direccion').value },
+                { clave: 'EMPRESA_TELEFONO', valor: document.getElementById('config-empresa-telefono').value },
+                { clave: 'EMPRESA_CONTACTO', valor: document.getElementById('config-empresa-contacto').value },
+                { clave: 'EMPRESA_LOGO', valor: document.getElementById('config-empresa-logo').value },
+                { clave: 'SMTP_SERVER', valor: document.getElementById('config-smtp-server').value },
+                { clave: 'SMTP_PORT', valor: document.getElementById('config-smtp-port').value },
+                { clave: 'SMTP_USER', valor: document.getElementById('config-smtp-user').value },
+                { clave: 'SMTP_PASS', valor: document.getElementById('config-smtp-pass').value },
+            ];
+            for (const entry of configuracion) {
+                await fetch(apiBase + 'configuracion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry)
+                });
+            }
+            status.textContent = 'Configuración guardada correctamente.';
+            status.style.color = 'green';
         }
 
         async function crearCliente() {
@@ -393,6 +457,7 @@
             fetchClientes();
             fetchStock();
             fetchPresupuestos();
+            fetchConfiguracion();
             document.getElementById('fecha-inicio').value = new Date().toISOString().slice(0, 10);
         });
     </script>
