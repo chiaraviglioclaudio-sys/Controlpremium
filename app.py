@@ -459,9 +459,12 @@ def create_presupuesto(data: PresupuestoCreate):
 
 def draw_logo_on_canvas(c):
     logo_path = get_config_value("EMPRESA_LOGO") or LOGO_PATH
+    logo_path = logo_path.strip()
     if logo_path.startswith("/static/"):
         logo_path = logo_path[1:]
-    if logo_path.startswith("static/") and not os.path.exists(logo_path):
+    if logo_path.startswith("static/"):
+        logo_path = os.path.join(os.getcwd(), logo_path)
+    elif not os.path.isabs(logo_path):
         logo_path = os.path.join(os.getcwd(), logo_path)
     if os.path.exists(logo_path):
         try:
@@ -515,6 +518,16 @@ def generar_pdf_presupuesto(presupuesto_id: int, path: str):
     c.drawString(40, height - 210, f"Obra: {row['obra_descripcion']}")
     c.drawString(40, height - 225, f"Fecha inicio: {row['fecha_inicio']}")
 
+    condiciones = (row['condiciones'] or '').strip()
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(40, height - 250, "Condiciones:")
+    c.setFont("Helvetica", 10)
+    text = c.beginText(40, height - 265)
+    text.setLeading(14)
+    for line in condiciones.split('\n'):
+        text.textLine(line)
+    c.drawText(text)
+
     data = [["Concepto", "Unidad", "Cantidad", "P. Unitario", "Subtotal"]]
     for item in items:
         data.append([
@@ -533,12 +546,18 @@ def generar_pdf_presupuesto(presupuesto_id: int, path: str):
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ]))
     table.wrapOn(c, width, height)
-    table.drawOn(c, 40, height - 360)
+    table.drawOn(c, 40, height - 420)
 
     c.setFont("Helvetica-Bold", 12)
-    c.drawRightString(width - 40, 120, f"Subtotal: ${row['subtotal']:.2f}")
-    c.drawRightString(width - 40, 100, f"IVA: ${row['iva']:.2f}")
-    c.drawRightString(width - 40, 80, f"Total: ${row['monto']:.2f}")
+    c.drawRightString(width - 40, 110, f"Subtotal: ${row['subtotal']:.2f}")
+    c.drawRightString(width - 40, 90, f"IVA: ${row['iva']:.2f}")
+    c.drawRightString(width - 40, 70, f"Total: ${row['monto']:.2f}")
+
+    c.setFont("Helvetica", 10)
+    c.drawString(40, 40, "Responsable:")
+    c.line(100, 42, 320, 42)
+    c.drawString(40, 22, "Firma:")
+    c.line(70, 24, 320, 24)
 
     c.showPage()
     c.save()
