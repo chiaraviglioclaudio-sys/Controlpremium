@@ -6,10 +6,10 @@ import sqlite3
 import os
 import html
 import shutil
-import imghdr
 from pathlib import Path
 from uuid import uuid4
 from datetime import datetime
+from PIL import Image
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
@@ -365,8 +365,10 @@ def upload_logo(file: UploadFile = File(...)):
                 if size > max_size:
                     raise HTTPException(status_code=400, detail="El archivo es demasiado grande.")
                 buffer.write(chunk)
-        detected_type = imghdr.what(destination_path)
-        if detected_type is None:
+        try:
+            with Image.open(destination_path) as img:
+                img.verify()
+        except Exception:
             os.remove(destination_path)
             raise HTTPException(status_code=400, detail="El archivo subido no es una imagen válida.")
     finally:
