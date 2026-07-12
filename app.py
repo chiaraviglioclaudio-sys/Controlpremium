@@ -490,17 +490,30 @@ def generar_pdf_presupuesto(presupuesto_id: int, path: str):
     items = [dict(item) for item in cursor.fetchall()]
     conn.close()
 
+    empresa_nombre = get_config_value("EMPRESA_NOMBRE") or "Control Premium"
+    empresa_cuit = get_config_value("EMPRESA_CUIT") or ""
+    empresa_direccion = get_config_value("EMPRESA_DIRECCION") or ""
+    empresa_telefono = get_config_value("EMPRESA_TELEFONO") or ""
+    empresa_contacto = get_config_value("EMPRESA_CONTACTO") or ""
+
     c = canvas.Canvas(path, pagesize=A4)
     width, height = A4
     draw_logo_on_canvas(c)
     c.setFont("Helvetica-Bold", 18)
-    c.drawString(200, height - 80, "Presupuesto Control Premium")
+    c.drawString(200, height - 80, empresa_nombre)
+    c.setFont("Helvetica", 10)
+    c.drawRightString(width - 40, height - 80, f"CUIT: {empresa_cuit}")
+    c.drawRightString(width - 40, height - 95, empresa_direccion)
+    c.drawRightString(width - 40, height - 110, f"Tel: {empresa_telefono}")
+    c.drawRightString(width - 40, height - 125, f"Contacto: {empresa_contacto}")
+
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(40, height - 160, f"Presupuesto N° {row['id']}")
     c.setFont("Helvetica", 11)
-    c.drawString(40, height - 120, f"Presupuesto ID: {row['id']}")
-    c.drawString(40, height - 135, f"Cliente: {row['cliente']}")
-    c.drawString(40, height - 150, f"Fecha: {row['fecha']}")
-    c.drawString(40, height - 165, f"Obra: {row['obra_descripcion']}")
-    c.drawString(40, height - 180, f"Fecha inicio: {row['fecha_inicio']}")
+    c.drawString(40, height - 180, f"Cliente: {row['cliente']}")
+    c.drawString(40, height - 195, f"Fecha: {row['fecha']}")
+    c.drawString(40, height - 210, f"Obra: {row['obra_descripcion']}")
+    c.drawString(40, height - 225, f"Fecha inicio: {row['fecha_inicio']}")
 
     data = [["Concepto", "Unidad", "Cantidad", "P. Unitario", "Subtotal"]]
     for item in items:

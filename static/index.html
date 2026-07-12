@@ -117,6 +117,7 @@
                 <div class="field"><label>Obra / Descripción</label><input id="obra-descripcion" type="text" /></div>
                 <div class="field"><label>Fecha inicio</label><input id="fecha-inicio" type="date" /></div>
                 <div class="field"><label>Condiciones</label><textarea id="condiciones">Validez del presupuesto: 15 días.</textarea></div>
+                <div class="field"><label><input id="config-apply-iva" type="checkbox" checked="checked" /> Aplicar IVA 21%</label></div>
                 <div class="card" style="margin-top: 12px;">
                     <div class="section-title"><h2>Items</h2></div>
                     <div class="field"><label>Concepto</label><input id="item-concepto" type="text" /></div>
@@ -194,10 +195,11 @@
 
         function calcularTotales() {
             const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
-            const iva = subtotal * 0.21;
+            const aplicarIva = document.getElementById('config-apply-iva').checked;
+            const iva = aplicarIva ? subtotal * 0.21 : 0;
             const total = subtotal + iva;
             document.getElementById('subtotal-label').textContent = `$${subtotal.toFixed(2)}`;
-            document.getElementById('iva-label').textContent = `$${iva.toFixed(2)}`;
+            document.getElementById('iva-label').textContent = aplicarIva ? `$${iva.toFixed(2)}` : '$0.00';
             document.getElementById('total-label').textContent = `$${total.toFixed(2)}`;
             return { subtotal, iva, total };
         }
@@ -505,6 +507,7 @@
             fetchPresupuestos();
             fetchConfiguracion();
             document.getElementById('fecha-inicio').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('config-apply-iva').addEventListener('change', calcularTotales);
         });
     </script>
 </body>
